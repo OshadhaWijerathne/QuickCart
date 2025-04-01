@@ -1,15 +1,27 @@
 from fastapi import FastAPI
 import uvicorn
-#from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change this to your frontend URL in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class ShopItem(BaseModel):
+    item: str  # Ensures item is always a string
+
 shop_db = {
-    "apple": 10,
-    "banana": 8,
-    "orange": 12,
-    "grapes": 20,
-    "mango": 30
+    "apple": { "price": 10, "stock": 20 },
+    "banana": { "price": 8, "stock": 15 },
+    "orange": { "price": 12, "stock": 20 },
+    "grapes": { "price": 15, "stock": 15 },
+    "mango": { "price": 18, "stock": 20 },
 }
 
 cart_db = {}
@@ -20,12 +32,13 @@ def show_shop_items():
     return shop_db
 #Cart methods
 @app.post("/add_to_cart")
-def add_item_to_cart_db(item:str):
-    if item in cart_db:
-        cart_db[item] += 1
+def add_item_to_cart_db(item:ShopItem):
+    shop_db[item.item]["stock"] -= 1
+    if item.item in cart_db:
+        cart_db[item.item]["quantity"] += 1
     else:
-        cart_db[item] = 1    
-    return({"message":"item added to the cart_db"})
+        cart_db[item.item] = {"quantity": 1, "price": shop_db[item.item]["price"]}   
+    return({"message":f"{item.item} added to the cart_db"})
 
 @app.get("/cart_db")
 def show_item_in_cart_db():
